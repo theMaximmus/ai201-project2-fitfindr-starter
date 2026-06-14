@@ -13,6 +13,7 @@ Tools:
 """
 
 import os
+from xmlrpc import client
 
 from dotenv import load_dotenv
 from groq import Groq
@@ -69,8 +70,29 @@ def search_listings(
 
     Before writing code, fill in the Tool 1 section of planning.md.
     """
-    # Replace this with your implementation
-    return []
+    listings = load_listings()
+    results = []
+
+    for item in listings:
+        # 1. Filter by description (checks title, description, category, and tags)
+        if description:
+            # Combine relevant fields into one searchable string
+            search_text = f"{item.get('title', '')} {item.get('description', '')} {item.get('category', '')} {' '.join(item.get('style_tags', []))}".lower()
+            if description.lower() not in search_text:
+                continue
+        
+        # 2. Filter by size (exact match)
+        if size and item.get('size') != size:
+            continue
+            
+        # 3. Filter by maximum price
+        if max_price and item.get('price', float('inf')) > max_price:
+            continue
+            
+        # If it passes all criteria, add to results
+        results.append(item)
+
+    return results
 
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
@@ -100,8 +122,33 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     Before writing code, fill in the Tool 2 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    # 1. Handle the failure mode: Empty wardrobe
+    if not wardrobe or not wardrobe.get("items"):
+        return f"I see your wardrobe is empty right now! Generally, this {new_item.get('title', 'item')} would look great paired with some classic basics like wide-leg jeans and neutral sneakers."
+
+    # 2. Construct the prompt
+    prompt = f"""
+    You are an expert fashion stylist. I just thrifted this item:
+    {new_item.get('title')} - {new_item.get('description')}
+
+    Here is my current wardrobe:
+    {wardrobe.get('items')}
+
+    Suggest one complete outfit combining the new item with pieces from my wardrobe. 
+    Keep it stylish, natural, and brief (2-3 sentences max). Do not use robotic intro phrases like "Here is a suggestion."
+    """
+
+    # 3. Call the LLM
+    try:
+        groq_client = _get_groq_client()
+        response = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Sorry, I had a little trouble pulling an outfit together right now. (Error: {str(e)})"
 
 
 # ── Tool 3: create_fit_card ───────────────────────────────────────────────────
@@ -133,5 +180,29 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
 
     Before writing code, fill in the Tool 3 section of planning.md.
     """
-    # Replace this with your implementation
-    return ""
+    # 1. Handle the failure mode: Empty or invalid outfit string
+    if not outfit or not str(outfit).strip():
+        return "Oops, I didn't get an outfit to caption! Let's try searching for a different item."
+
+    # 2. Construct the prompt
+    prompt = f"""
+    You are a trendy fashion enthusiast. I just put together this outfit featuring a thrifted item:
+    New Item: {new_item.get('title')}
+    Outfit Details: {outfit}
+
+    Write a short, catchy, natural-sounding caption for an Instagram post showing off this look.
+    It should be 1-2 sentences max, use 1 or 2 emojis, and sound casual (no hashtags).
+    Make it sound like a real person sharing their thrift find, mentioning the item.
+    """
+
+    # 3. Call the LLM
+    try:
+        groq_client = _get_groq_client()
+        response = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.8,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception as e:
+        return f"Sorry, I couldn't generate a fit card right now. (Error: {str(e)})"

@@ -78,8 +78,21 @@ def search_listings(
         if description:
             # Combine relevant fields into one searchable string
             search_text = f"{item.get('title', '')} {item.get('description', '')} {item.get('category', '')} {' '.join(item.get('style_tags', []))}".lower()
-            if description.lower() not in search_text:
-                continue
+            
+            # --- UPDATED LOGIC: Keyword matching instead of exact phrase ---
+            # Remove punctuation and split into words
+            clean_desc = description.lower().replace('.', '').replace(',', '').replace('!', '')
+            query_words = clean_desc.split()
+            
+            # Ignore common conversational filler words
+            stop_words = {"find", "me", "some", "looking", "for", "i", "im", "i'm", "only", "wear", "and", "hate", "the", "a", "to", "want"}
+            keywords = [w for w in query_words if w not in stop_words]
+            
+            # Check if ANY of our meaningful keywords are in the item's text
+            if keywords:
+                has_match = any(kw in search_text for kw in keywords)
+                if not has_match:
+                    continue
         
         # 2. Filter by size (exact match)
         if size and item.get('size') != size:
@@ -213,11 +226,11 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
     except Exception as e:
         return f"Sorry, I couldn't generate a fit card right now. (Error: {str(e)})"
     
-# Tool 4: compare_price (Stretch Feature)
 def compare_price(item: dict) -> str:
     """
     Compares the item's price against the average price of its category.
     """
+    from utils.data_loader import load_listings
     listings = load_listings()
     category = item.get("category")
     
@@ -234,3 +247,26 @@ def compare_price(item: dict) -> str:
         return f"📉 Great deal! At ${item_price:.2f}, it is below the category average of ${avg_price:.2f}."
     else:
         return f"⚖️ Fair price. At ${item_price:.2f}, it is around the category average of ${avg_price:.2f}."
+
+# Tool 5: extract_style_preferences (Stretch Feature)
+
+def extract_style_preferences(query: str) -> str:
+    """
+    Extracts explicit style preferences from the user's query using the LLM.
+    """
+    prompt = f"""
+    Extract any explicit style, color, or fit preferences from this query: "{query}"
+    Examples of preferences: "I love vintage", "baggy fits only", "I hate bright colors".
+    If there are no explicit style preferences, return exactly the word "None".
+    Otherwise, return a short phrase summarizing the preference.
+    """
+    try:
+        groq_client = _get_groq_client()
+        response = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.0,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return "None"

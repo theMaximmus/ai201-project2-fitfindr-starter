@@ -67,11 +67,8 @@ def handle_query(user_query: str, wardrobe_choice: str) -> tuple[str, str, str]:
     listing_text += f"Price: ${item.get('price')}\n"
     listing_text += f"Size: {item.get('size')}\n"
     listing_text += f"Condition: {item.get('condition')}\n"
-    listing_text += f"Platform: {item.get('platform')}\n\n"
-    listing_text += f"Description: {item.get('description')}"
-
     listing_text += f"Platform: {item.get('platform')}\n"
-    listing_text += f"Price Check: {session.get('price_assessment')}\n\n" # <-- Add this line here
+    listing_text += f"Price Check: {session.get('price_assessment')}\n\n"
     listing_text += f"Description: {item.get('description')}"
 
     # Append the retry logic message if it exists

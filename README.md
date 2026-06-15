@@ -43,3 +43,6 @@ Every tool handles its own failure mode gracefully by returning an informative s
 ## AI Usage
 1. **Tool Implementation:** I provided an AI tool with my exact spec definitions from `planning.md` and asked it to generate the three Python functions in `tools.py`.
 2. **Debugging:** When wiring up the LLM, the generated code caused a Python namespace collision (`module 'xmlrpc.client' has no attribute 'chat'`). I directed the AI to revise the code to use the specific `_get_groq_client()` helper function provided in the starter code, which fixed the crash.
+
+## Stretch Feature: Style Profile Memory
+**Storage Approach:** The agent uses a global `STYLE_MEMORY` set in `agent.py` to persist extracted style preferences across multiple interactions. A dedicated LLM tool (`extract_style_preferences`) analyzes each user query to detect preferences (e.g., "I only wear dark colors"). This memory array is dynamically injected into the context of the `suggest_outfit` tool, ensuring future recommendations automatically align with previously stated preferences without the user needing to re-enter them.

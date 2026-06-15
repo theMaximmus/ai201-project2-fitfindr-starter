@@ -70,6 +70,14 @@ def handle_query(user_query: str, wardrobe_choice: str) -> tuple[str, str, str]:
     listing_text += f"Platform: {item.get('platform')}\n\n"
     listing_text += f"Description: {item.get('description')}"
 
+    listing_text += f"Platform: {item.get('platform')}\n"
+    listing_text += f"Price Check: {session.get('price_assessment')}\n\n" # <-- Add this line here
+    listing_text += f"Description: {item.get('description')}"
+
+    # Append the retry logic message if it exists
+    if session.get("retry_message"):
+        listing_text += session["retry_message"]
+    
     # Return the three strings mapped to the three Gradio output boxes
     return (
         listing_text, 
@@ -77,6 +85,26 @@ def handle_query(user_query: str, wardrobe_choice: str) -> tuple[str, str, str]:
         session["fit_card"]
     )
 
+def extract_style_preferences(query: str) -> str:
+    """
+    Extracts explicit style preferences from the user's query using the LLM.
+    """
+    prompt = f"""
+    Extract any explicit style, color, or fit preferences from this query: "{query}"
+    Examples of preferences: "I love vintage", "baggy fits only", "I hate bright colors".
+    If there are no explicit style preferences, return exactly the word "None".
+    Otherwise, return a short phrase summarizing the preference.
+    """
+    try:
+        groq_client = _get_groq_client()
+        response = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.0,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return "None"
 
 # ── interface ─────────────────────────────────────────────────────────────────
 

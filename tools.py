@@ -97,7 +97,7 @@ def search_listings(
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
 
-def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
+def suggest_outfit(new_item: dict, wardrobe: dict, style_memory: list = None) -> str:
     """
     Given a thrifted item and the user's wardrobe, suggest 1–2 complete outfits.
 
@@ -126,6 +126,11 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
     if not wardrobe or not wardrobe.get("items"):
         return f"I see your wardrobe is empty right now! Generally, this {new_item.get('title', 'item')} would look great paired with some classic basics like wide-leg jeans and neutral sneakers."
 
+    # --- STRETCH FEATURE: Inject Memory ---
+    memory_context = ""
+    if style_memory:
+        memory_context = f"\nKeep in mind my overall style preferences: {', '.join(style_memory)}\n"
+
     # 2. Construct the prompt
     prompt = f"""
     You are an expert fashion stylist. I just thrifted this item:
@@ -133,6 +138,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict) -> str:
 
     Here is my current wardrobe:
     {wardrobe.get('items')}
+    {memory_context}
 
     Suggest one complete outfit combining the new item with pieces from my wardrobe. 
     Keep it stylish, natural, and brief (2-3 sentences max). Do not use robotic intro phrases like "Here is a suggestion."
@@ -206,3 +212,25 @@ def create_fit_card(outfit: str, new_item: dict) -> str:
         return response.choices[0].message.content.strip()
     except Exception as e:
         return f"Sorry, I couldn't generate a fit card right now. (Error: {str(e)})"
+    
+# Tool 4: compare_price (Stretch Feature)
+def compare_price(item: dict) -> str:
+    """
+    Compares the item's price against the average price of its category.
+    """
+    listings = load_listings()
+    category = item.get("category")
+    
+    # Find all other items in the same category
+    comparables = [l for l in listings if l.get("category") == category and l.get("id") != item.get("id")]
+    
+    if not comparables:
+        return "Unique item! Hard to compare prices."
+        
+    avg_price = sum(l.get("price", 0) for l in comparables) / len(comparables)
+    item_price = item.get("price", 0)
+    
+    if item_price < avg_price:
+        return f"📉 Great deal! At ${item_price:.2f}, it is below the category average of ${avg_price:.2f}."
+    else:
+        return f"⚖️ Fair price. At ${item_price:.2f}, it is around the category average of ${avg_price:.2f}."

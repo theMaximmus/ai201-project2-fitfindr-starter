@@ -19,8 +19,11 @@ Usage (once implemented):
 """
 
 import re
-from tools import search_listings, suggest_outfit, create_fit_card
+from tools import search_listings, suggest_outfit, create_fit_card, compare_price, extract_style_preferences
 
+
+# Global storage for Style Profile Memory stretch feature
+STYLE_MEMORY = set()
 
 # ── session state ─────────────────────────────────────────────────────────────
 
@@ -102,6 +105,14 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     price_match = re.search(r'\$(\d+)', query)
     max_price = float(price_match.group(1)) if price_match else None
 
+    # Step 2.5: Extract and store style preferences (Stretch Feature)
+    prefs = extract_style_preferences(query)
+    if prefs and prefs.lower() != "none":
+        STYLE_MEMORY.add(prefs)
+    
+    # Save current memory to session so we can see what it knows
+    session["style_memory"] = list(STYLE_MEMORY)
+
     # Extract size (e.g., "size M" or "size XXS")
     size_match = re.search(r'size\s+([a-zA-Z0-9]+)', query, re.IGNORECASE)
     size = size_match.group(1).upper() if size_match else None
@@ -125,8 +136,11 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     # Step 4: Select the top item
     session["selected_item"] = results[0]
 
-    # Step 5: Suggest an outfit based on the selected item and wardrobe
-    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe)
+    # Step 4.5: Price Comparison Tool
+    session["price_assessment"] = compare_price(session["selected_item"])
+
+    # Step 5: Suggest an outfit (Now passing in the style memory!)
+    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe, style_memory=session["style_memory"])
 
     # Step 6: Create the shareable fit card
     session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])

@@ -43,8 +43,39 @@ def handle_query(user_query: str, wardrobe_choice: str) -> tuple[str, str, str]:
            string and return it along with session["outfit_suggestion"] and
            session["fit_card"].
     """
-    # TODO: implement this function
-    return "Agent not yet implemented.", "", ""
+    # 1. Guard against an empty query
+    if not user_query or not user_query.strip():
+        return "Please enter a search description first!", "", ""
+
+    # 2. Select the correct wardrobe based on the UI dropdown
+    if wardrobe_choice == "Example wardrobe":
+        wardrobe = get_example_wardrobe()
+    else:
+        wardrobe = get_empty_wardrobe()
+
+    # 3. Call your agent!
+    session = run_agent(query=user_query, wardrobe=wardrobe)
+
+    # 4. Handle the error path (e.g., no search results)
+    if session.get("error"):
+        return session["error"], "", ""
+
+    # 5. Handle the successful path
+    # Format the item details nicely for the first UI panel
+    item = session["selected_item"]
+    listing_text = f"Title: {item.get('title')}\n"
+    listing_text += f"Price: ${item.get('price')}\n"
+    listing_text += f"Size: {item.get('size')}\n"
+    listing_text += f"Condition: {item.get('condition')}\n"
+    listing_text += f"Platform: {item.get('platform')}\n\n"
+    listing_text += f"Description: {item.get('description')}"
+
+    # Return the three strings mapped to the three Gradio output boxes
+    return (
+        listing_text, 
+        session["outfit_suggestion"], 
+        session["fit_card"]
+    )
 
 
 # ── interface ─────────────────────────────────────────────────────────────────

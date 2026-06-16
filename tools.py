@@ -110,7 +110,7 @@ def search_listings(
 
 # ── Tool 2: suggest_outfit ────────────────────────────────────────────────────
 
-def suggest_outfit(new_item: dict, wardrobe: dict, style_memory: list = None) -> str:
+def suggest_outfit(new_item: dict, wardrobe: dict, style_memory: list = None, current_trends: str = None) -> str:
     """
     Given a thrifted item and the user's wardrobe, suggest 1–2 complete outfits.
 
@@ -144,6 +144,11 @@ def suggest_outfit(new_item: dict, wardrobe: dict, style_memory: list = None) ->
     if style_memory:
         memory_context = f"\nKeep in mind my overall style preferences: {', '.join(style_memory)}\n"
 
+    # --- STRETCH FEATURE: Inject Trends ---
+    trend_context = ""
+    if current_trends:
+        trend_context = f"\nCurrent Fashion Trends: {current_trends}\nPlease explicitly mention how your outfit suggestion aligns with these current trends.\n"
+
     # 2. Construct the prompt
     prompt = f"""
     You are an expert fashion stylist. I just thrifted this item:
@@ -152,6 +157,7 @@ def suggest_outfit(new_item: dict, wardrobe: dict, style_memory: list = None) ->
     Here is my current wardrobe:
     {wardrobe.get('items')}
     {memory_context}
+    {trend_context}
 
     Suggest one complete outfit combining the new item with pieces from my wardrobe. 
     Keep it stylish, natural, and brief (2-3 sentences max). Do not use robotic intro phrases like "Here is a suggestion."
@@ -270,3 +276,22 @@ def extract_style_preferences(query: str) -> str:
         return response.choices[0].message.content.strip()
     except Exception:
         return "None"
+    
+# Tool 6: check_current_trends (Stretch Feature)
+
+def check_current_trends(category: str) -> str:
+    """
+    Fetches current fashion trends for a specific clothing category.
+    Uses the LLM as a dynamic trend data source.
+    """
+    prompt = f"What are 2 or 3 current fashion trends right now for secondhand {category}? Keep it to one short sentence."
+    try:
+        groq_client = _get_groq_client()
+        response = groq_client.chat.completions.create(
+            messages=[{"role": "user", "content": prompt}],
+            model="llama-3.3-70b-versatile",
+            temperature=0.7,
+        )
+        return response.choices[0].message.content.strip()
+    except Exception:
+        return "Baggy fits and vintage styles are currently trending."

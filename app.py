@@ -75,10 +75,16 @@ def handle_query(user_query: str, wardrobe_choice: str) -> tuple[str, str, str]:
     if session.get("retry_message"):
         listing_text += session["retry_message"]
     
+    # Format the outfit text to explicitly show the trend
+    outfit_text = ""
+    if session.get("current_trends"):
+        outfit_text += f"📈 Trend Alert: {session.get('current_trends')}\n\n"
+    outfit_text += session["outfit_suggestion"]
+
     # Return the three strings mapped to the three Gradio output boxes
     return (
         listing_text, 
-        session["outfit_suggestion"], 
+        outfit_text, 
         session["fit_card"]
     )
 

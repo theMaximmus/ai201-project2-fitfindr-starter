@@ -46,3 +46,6 @@ Every tool handles its own failure mode gracefully by returning an informative s
 
 ## Stretch Feature: Style Profile Memory
 **Storage Approach:** The agent uses a global `STYLE_MEMORY` set in `agent.py` to persist extracted style preferences across multiple interactions. A dedicated LLM tool (`extract_style_preferences`) analyzes each user query to detect preferences (e.g., "I only wear dark colors"). This memory array is dynamically injected into the context of the `suggest_outfit` tool, ensuring future recommendations automatically align with previously stated preferences without the user needing to re-enter them.
+
+## Stretch Feature: Trend Awareness Tool
+**Data Source Used:** The agent uses Groq's `llama-3.3-70b-versatile` model as a dynamic "Trend Oracle." By passing the found item's category (e.g., "outerwear") into the `check_current_trends` tool, the LLM generates real-time fashion trends. This trend data is stored in the session and injected into the `suggest_outfit` prompt, visibly influencing the styling advice to match current fashion movements.

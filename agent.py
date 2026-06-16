@@ -19,7 +19,7 @@ Usage (once implemented):
 """
 
 import re
-from tools import search_listings, suggest_outfit, create_fit_card, compare_price, extract_style_preferences
+from tools import search_listings, suggest_outfit, create_fit_card, compare_price, extract_style_preferences, check_current_trends
 
 
 # Global storage for Style Profile Memory stretch feature
@@ -136,12 +136,20 @@ def run_agent(query: str, wardrobe: dict) -> dict:
     # Step 4: Select the top item
     session["selected_item"] = results[0]
 
-    # Step 4.5: Price Comparison Tool
+    # Price Comparison Tool
     session["price_assessment"] = compare_price(session["selected_item"])
 
-    # Step 5: Suggest an outfit (Now passing in the style memory!)
-    session["outfit_suggestion"] = suggest_outfit(session["selected_item"], wardrobe, style_memory=session["style_memory"])
+    # Fetch current trends (Stretch Feature)
+    session["current_trends"] = check_current_trends(session["selected_item"].get("category", "clothing"))
 
+    # Step 5: Suggest an outfit (Now passing memory AND trends!)
+    session["outfit_suggestion"] = suggest_outfit(
+        session["selected_item"], 
+        wardrobe, 
+        style_memory=session.get("style_memory"),
+        current_trends=session.get("current_trends")
+    )
+    
     # Step 6: Create the shareable fit card
     session["fit_card"] = create_fit_card(session["outfit_suggestion"], session["selected_item"])
 
